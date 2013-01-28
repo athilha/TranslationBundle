@@ -56,12 +56,13 @@ class CypressTranslationExtension extends \Twig_Extension
      * @param Object      $entity the entity
      * @param string      $field  name of the field
      * @param null|string $lang   the two digit language
+     * @param boolean     $fallback return default language if not translation available
      *
      * @throws \Twig_Error_Runtime
      * @return mixed
      *
      */
-    public function translateEntity($entity, $field, $lang = null)
+    public function translateEntity($entity, $field, $lang = null, $fallback = true)
     {
         if (!is_a($entity, 'Cypress\TranslationBundle\Doctrine\Base\Translatable')) {
             throw new \Twig_Error_Runtime('The "translate" filter can be applied only to an entity that extends "Cypress\TranslationBundle\Doctrine\Base\Translatable"');
@@ -94,7 +95,13 @@ class CypressTranslationExtension extends \Twig_Extension
         }
 
         $method = $this->generateMethodName($field, $lang, $entity);
-        return $entity->$method();
+        $return = $entity->$method();
+        if (!$return && $fallback && $lang != $entity->getDefaultLanguage())
+        {
+            $method = $this->generateMethodName($field, $entity->getDefaultLanguage(), $entity);
+            $return = $entity->$method();
+        }
+        return $return;
     }
 
     private function generateMethodName($field, $lang, $entity)
